@@ -1,0 +1,490 @@
+{
+  "name": "LLM-Based-Workflow-Code-Summarizer",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Workflow\n\n1. Read the code related mail --> trigger\n2. Summarize the code using LLM\n3. Generate the comments for the code.\n4. Step 2 and 3 to be done in parallel.\n5. Merge the output of 2 and 3. \n6. Send the output to me as mail.",
+        "height": 256,
+        "width": 336,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -768,
+        -768
+      ],
+      "typeVersion": 1,
+      "id": "d969b333-1179-4426-84e8-d3ddccbec46f",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "sender": "bamberguniversity@gmail.com"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -528,
+        -480
+      ],
+      "id": "e944c0b4-3f93-4459-93d4-441208df4d9f",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "aBIyFeMqWGkrdkgq",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Given the code below  {{ $json.text }}\ngenerate comments for the code so that i can understand what each line of the code does.\nNOTE: Don't modify the existing code lines at all. Just add \nthe comments wherever required.",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a helpful assistant and know how to write code in python. You can help me to understand the code by adding comments to it."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -240,
+        -768
+      ],
+      "id": "a7ab8fe4-a222-4d45-bf2c-5ee06bd32890",
+      "name": "Comments Addition Node"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Given the code below\nCode:-\n {{ $json.text }}\ngenerate a summary of what this code does in very simple language. Do note that the summary should containt all the important details there are in the code that i know what the code is about in a quick glance.\n\n\n",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are an expert in python code. You have the ability to summarize code in simple language and have the knack to cover important details in the summary. "
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -256,
+        -224
+      ],
+      "id": "c631961c-8b3c-4a48-aec5-ee4fddbfe7d3",
+      "name": "Code Summary"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        96,
+        -496
+      ],
+      "id": "175bc8b4-4c0f-446e-ba68-49349587198a",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "text"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        272,
+        -496
+      ],
+      "id": "07ed8d04-eb47-40fa-8061-c2d11302a9c5",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "sendTo": "testemail9860@gmail.com",
+        "subject": "Code Summary and comments ",
+        "message": "={{ $json.text }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        960,
+        -496
+      ],
+      "id": "96849007-f00b-4308-a574-39ccc3710375",
+      "name": "Send a message",
+      "webhookId": "461d6f2a-52fc-493c-bf9b-f45e3146f9f0",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "aBIyFeMqWGkrdkgq",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "dc16d8b0-ebf3-489b-b490-b1b15f116c94",
+              "name": "Message",
+              "value": "=Code with Comments: \n{{ $json.text[0] }}\n\nCode Summary:\n{{ $json.text[1] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        464,
+        -496
+      ],
+      "id": "928cf626-30a4-4de9-babe-3b622b53e419",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Convert the message into html format. \nInclude proper code blocks wherever necessary. The code blocks should have syntax highlighting for the specific language used in the code.\n\nMessage:\n{{ $json.Message }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You can convert any message into html format that can be sent on mail to the user."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        624,
+        -496
+      ],
+      "id": "dda46b16-8bc7-4eeb-a3ce-2b8433b65ed8",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -256,
+        -32
+      ],
+      "id": "4199c109-8187-4008-b839-fdb5318457ed",
+      "name": "Google Gemini Summary Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "XELsh5HRH00GFWYf",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -240,
+        -576
+      ],
+      "id": "a316ceba-f5dc-456a-9544-4ae1ece5ae1b",
+      "name": "Gemini Comment Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "XELsh5HRH00GFWYf",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        624,
+        -256
+      ],
+      "id": "38e39681-e646-4f47-996f-6710223201a7",
+      "name": "Gemini Formatter Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "XELsh5HRH00GFWYf",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Gmail Trigger": [
+      {
+        "json": {
+          "id": "1a0d3d00b8ad5476",
+          "threadId": "1a0d3d00b8ad5476",
+          "labelIds": [
+            "UNREAD",
+            "IMPORTANT",
+            "CATEGORY_PERSONAL",
+            "INBOX"
+          ],
+          "sizeEstimate": 12591,
+          "headers": {
+            "delivered-to": "Delivered-To: testemail9860@gmail.com",
+            "received": "Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])\r\n        by mx.google.com with SMTPS id a1e0cc1a2514c-9851c09c9edsor389999241.8.2026.09.24.07.27.01\r\n        for <testemail9860@gmail.com>\r\n        (Google Transport Security);\r\n        Thu, 24 Sep 2026 07:27:02 -0700 (PDT)",
+            "x-received": "X-Received: by 2002:a05:6102:f12:b0:7a5:d652:2e3c with SMTP id\r\n ada2fe7eead31-7af1cfa48e8mr1230897137.9.1790260020795; Thu, 24 Sep 2026\r\n 07:27:00 -0700 (PDT)",
+            "arc-seal": "ARC-Seal: i=1; a=rsa-sha256; t=1790260021; cv=none;\r\n        d=google.com; s=arc-20260327;\r\n        b=oqYDqWnnuASwgpDCFxZE+EYmotJnruQOGMIOpGWcMUwZVX2lgAtuY9//35YEiF0QUa\r\n         N4wLBne785jRMmBGnlghAr61SMXBr9gSdIdmcVHlUCFDIdD/QdBm29TrlWICQxFFOSiy\r\n         knwMgFKjC+g+tjWN2P14RbHmRzMwEfqT4bUh0BtvZa3s5CfuGLOe09SMfB301fN6jdHe\r\n         fKnjcYJkIv1GQX0Y2bksRVf6cBIhGAfBz8awZzoxfFnxz/32r/TiQddUn71T26ZrBWDI\r\n         +zCY2fMV6BvKQllLjujTPd00vXMqIy+Qh9+1qkwjpeGcLwfUGbk1brFrdsxnz7m5ord+\r\n         U3sQ==",
+            "arc-message-signature": "ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;\r\n        h=to:subject:message-id:date:from:mime-version:dkim-signature;\r\n        bh=aWg1+KQmSZdWb4zoNzJiPNVPFD6q16G91E9CHoo4k3U=;\r\n        fh=DbNWsdtBSl85SqdNmpLJJfsLJU28Pq3RjIOoauzMfQs=;\r\n        b=cI1C0+XIJl67IqxelUsxkxeHm8fmiXqGJxhly5obxN5GXQUmHRGip5v99sZOGKvN5d\r\n         JBTBRsAEB9Be4fGZbGvB8MY120g+zZKpt7wLcetFKqmPE8pc7UZT+jY+1l4S+m4PM3IQ\r\n         iMdJIlVp/Jm/W7BFsVMLCiuzQsN1dF3lUA4IgiCUy1usqvSmuburqrR5rPA5RVe68pDb\r\n         WeV4TPbwz3qwOIVaNTASxStxwic//CI808u/1adoxyGBbnz1XWy9Z8us7M3IP+qrG5HD\r\n         jI3sKgiOxWrDTdjpOYOgmNhqlxoe9tpeYqTLuOUT1o1xL9h8Q/o52nQ8yUm5VbK/S9CH\r\n         zSFQ==;\r\n        dara=google.com",
+            "arc-authentication-results": "ARC-Authentication-Results: i=1; mx.google.com; arc=none",
+            "return-path": "Return-Path: <bamberguniversity@gmail.com>",
+            "received-spf": "Received-SPF: pass (google.com: domain of bamberguniversity@gmail.com designates 209.85.220.41 as permitted sender) client-ip=209.85.220.41;",
+            "authentication-results": "Authentication-Results: mx.google.com;\r\n       dkim=pass header.i=@gmail.com header.s=20251104 header.b=sul5iy0o;\r\n       arc=pass (i=1);\r\n       spf=pass (google.com: domain of bamberguniversity@gmail.com designates 209.85.220.41 as permitted sender) smtp.mailfrom=bamberguniversity@gmail.com;\r\n       dmarc=pass (p=NONE sp=QUARANTINE dis=NONE) header.from=gmail.com;\r\n       dara=pass header.i=@gmail.com",
+            "dkim-signature": "DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;\r\n        d=gmail.com; s=20251104; t=1790260021; x=1790864821; dara=google.com;\r\n        h=content-type:to:subject:message-id:date:from:mime-version:from:to\r\n         :cc:subject:date:message-id:reply-to:content-type;\r\n        bh=aWg1+KQmSZdWb4zoNzJiPNVPFD6q16G91E9CHoo4k3U=;\r\n        b=sul5iy0orgzyOAm6idEefpSX5uuYDJRgkW+jv+RrI7iJXK2Cazse1r2UgPO9v8yqie\r\n         OZnX5JEW5OzwrxfTEO8AquZkme598JtI78Uji+9PwzpUvLt0KzDa0pbElR7JU7ynDo8z\r\n         Bi6SEEngxU7QqpxB0AK/bkTRY7AXLuiMYrJDBnfw+IsOkeaSBMwQB5mVmExjwB0tmKpX\r\n         gbUBpPkX2T4AoYkWuMQun9f73wYfI6wmvylAJBKcKhFriB/rf5gyiQDRmO8Mz711EOV+\r\n         hIDQTOkCxtt4mt/dlBmohZ1sUrNssF/zXJ5Xrc+lWU8BUdKsuq90CB6vN4X63Lnb6uNG\r\n         C4GA==",
+            "x-google-dkim-signature": "X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;\r\n        d=1e100.net; s=20260707; t=1790260021; x=1790864821;\r\n        h=content-type:to:subject:message-id:date:from:mime-version:x-gm-gg\r\n         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to\r\n         :content-type;\r\n        bh=aWg1+KQmSZdWb4zoNzJiPNVPFD6q16G91E9CHoo4k3U=;\r\n        b=irPoafm1z5TDEjcPjOgASzAkln5Ojy4hbdvr4UhnEEIM+/s293lNzZzY4Rq0DV3wxT\r\n         X79psOstg2dGH3hnO1Y7BLc4ERWlpXsSihfsNuWiM8dkZGos89dh4qLjAwNMsijr2ePq\r\n         FvJKYPRKngv8l3uX/kjvBX4QqwaOwUA3cw1FBK/bOfx30LUNZdjF/Shx1jJ20plFiFyC\r\n         JzmslCDKgkvD8h+uDFzKoTII3OxXssuIsyXBUHxcmAAB/Hhq2g6uMtthUSsnVGUjREwq\r\n         QE3aFNvw1cvp1hLaj9aYFD5wVIF+ttrMutkFAlzQ7wF4Kou8tFtLWrSROk+WXr3fmBd/\r\n         KPzA==",
+            "x-gm-message-state": "X-Gm-Message-State: AFuF++m77mKnNcEka8ZCAVsQS7dupWtW8zE0paXJEjwflPJlqzNQj0qW\r\n\tg7oVBJL1834l68qKjVKYzUgIoqJ5qQTCZliu40cuiU7waGsrNlWWmkwSbgeAgQRWHgDDEKbLniG\r\n\tTgnCNGcRiOYScO7z6IUz0lDxSEUcC6ZtbLUk0",
+            "x-gm-gg": "X-Gm-Gg: AYBFou3SgrBXHe9CUc98V/M7Nrucq6SVWZkC48x2Udm88h2aAKrWUbp6sbSX5CcJa1a\r\n\tgF/K3s8nVm4h9yhE90qHkgRZ4yEpmrIsEI2zqn/PDT8KV0i972+x6HN2O1Oe0TgL3zmU7IiM2Wn\r\n\tlG60JEfWXtA1bgc5IjF8NNm3Y3t74f3sZzoNMyDUgQi2Q9b5wtGBjdTsS4afGWqJ7zxYE2JwI/p\r\n\tQUvgwlxCUBCp7zaYpdvN6pgMnWXSwEEQFLu83vJ/sP68RoRsi5W9P7APpAePvJfR6RDJKJ2eBlf\r\n\t+WFdho15metSy11F6dO2oFHgQLuZtHeoRSngdGATkqOAlPeJrjlQ1OpB",
+            "mime-version": "MIME-Version: 1.0",
+            "from": "From: Bamberg University <bamberguniversity@gmail.com>",
+            "date": "Date: Thu, 24 Sep 2026 16:26:49 +0200",
+            "x-gm-features": "X-Gm-Features: AclHuK_tDJtPuKoNb2j5KJ_yXQFIOpXi3W8utICY1XLDi09zmvfzOUUYNt_Hf8w",
+            "message-id": "Message-ID: <CADp63bLBHpu=uOcWvDXnCjg++P+N_W+g+kVtJpn6HKPWuPBNgA@mail.gmail.com>",
+            "subject": "Subject: Code",
+            "to": "To: \"testemail9860@gmail.com\" <testemail9860@gmail.com>",
+            "content-type": "Content-Type: multipart/alternative; boundary=\"000000000000985c55065c3b64df\""
+          },
+          "html": "<div dir=\"ltr\"><span class=\"gmail-pythonkeywordcolor\" style=\"box-sizing:inherit;color:rgb(0,92,197);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\">def</span><span style=\"color:rgb(0,0,0);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\"> changecase(func):</span><br style=\"box-sizing:inherit;color:rgb(0,0,0);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\"><span class=\"gmail-pythonnumbercolor\" style=\"box-sizing:inherit;color:rgb(153,0,85);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\"></span><span style=\"color:rgb(0,0,0);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\">  </span><span class=\"gmail-pythonkeywordcolor\" style=\"box-sizing:inherit;color:rgb(0,92,197);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\">def</span><span style=\"color:rgb(0,0,0);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\"> myinner():</span><br style=\"box-sizing:inherit;color:rgb(0,0,0);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\"><span class=\"gmail-pythonnumbercolor\" style=\"box-sizing:inherit;color:rgb(153,0,85);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\"></span><span style=\"color:rgb(0,0,0);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\">    </span><span class=\"gmail-pythonkeywordcolor\" style=\"box-sizing:inherit;color:rgb(0,92,197);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\">return</span><span style=\"color:rgb(0,0,0);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\"> func().upper()</span><br style=\"box-sizing:inherit;color:rgb(0,0,0);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\"><span class=\"gmail-pythonnumbercolor\" style=\"box-sizing:inherit;color:rgb(153,0,85);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\"></span><span style=\"color:rgb(0,0,0);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\">  </span><span class=\"gmail-pythonkeywordcolor\" style=\"box-sizing:inherit;color:rgb(0,92,197);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\">return</span><span style=\"color:rgb(0,0,0);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\"> myinner</span><br style=\"box-sizing:inherit;color:rgb(0,0,0);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\"><span class=\"gmail-pythonnumbercolor\" style=\"box-sizing:inherit;color:rgb(153,0,85);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\"></span><br style=\"box-sizing:inherit;color:rgb(0,0,0);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\"><span style=\"color:rgb(0,0,0);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\">@changecase</span><br style=\"box-sizing:inherit;color:rgb(0,0,0);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\"><span class=\"gmail-pythonkeywordcolor\" style=\"box-sizing:inherit;color:rgb(0,92,197);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\">def</span><span style=\"color:rgb(0,0,0);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\"> myfunction():</span><br style=\"box-sizing:inherit;color:rgb(0,0,0);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\"><span class=\"gmail-pythonnumbercolor\" style=\"box-sizing:inherit;color:rgb(153,0,85);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\"></span><span style=\"color:rgb(0,0,0);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\">  </span><span class=\"gmail-pythonkeywordcolor\" style=\"box-sizing:inherit;color:rgb(0,92,197);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\">return</span><span style=\"color:rgb(0,0,0);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\"> </span><span class=\"gmail-pythonstringcolor\" style=\"box-sizing:inherit;color:green;font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\">&quot;Hello Sally&quot;</span><br style=\"box-sizing:inherit;color:rgb(0,0,0);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\"><span class=\"gmail-pythonnumbercolor\" style=\"box-sizing:inherit;color:rgb(153,0,85);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\"></span><br style=\"box-sizing:inherit;color:rgb(0,0,0);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\"><span class=\"gmail-pythonkeywordcolor\" style=\"box-sizing:inherit;color:rgb(0,92,197);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\">print</span><span style=\"color:rgb(0,0,0);font-family:Consolas,Menlo,&quot;courier new&quot;,monospace;font-size:15px\">(myfunction())</span></div>\n",
+          "text": "def changecase(func):\n  def myinner():\n    return func().upper()\n  return myinner\n\n@changecase\ndef myfunction():\n  return \"Hello Sally\"\n\nprint(myfunction())\n",
+          "textAsHtml": "<p>def changecase(func):<br/>  def myinner():<br/>    return func().upper()<br/>  return myinner</p><p><a href=\"https://twitter.com/changecase\">@changecase</a><br/>def myfunction():<br/>  return &quot;Hello Sally&quot;</p><p>print(myfunction())</p>",
+          "subject": "Code",
+          "date": "2026-09-24T14:26:49.000Z",
+          "to": {
+            "value": [
+              {
+                "address": "testemail9860@gmail.com",
+                "name": ""
+              }
+            ],
+            "html": "<span class=\"mp_address_group\"><a href=\"mailto:testemail9860@gmail.com\" class=\"mp_address_email\">testemail9860@gmail.com</a></span>",
+            "text": "testemail9860@gmail.com"
+          },
+          "from": {
+            "value": [
+              {
+                "address": "bamberguniversity@gmail.com",
+                "name": "Bamberg University"
+              }
+            ],
+            "html": "<span class=\"mp_address_group\"><span class=\"mp_address_name\">Bamberg University</span> &lt;<a href=\"mailto:bamberguniversity@gmail.com\" class=\"mp_address_email\">bamberguniversity@gmail.com</a>&gt;</span>",
+            "text": "\"Bamberg University\" <bamberguniversity@gmail.com>"
+          },
+          "messageId": "<CADp63bLBHpu=uOcWvDXnCjg++P+N_W+g+kVtJpn6HKPWuPBNgA@mail.gmail.com>"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "Comments Addition Node": [
+      {
+        "json": {
+          "text": "Here is the code with detailed comments explaining how the decorator works:\n\n```python\n# Define a decorator function that takes another function (func) as an argument\ndef changecase(func):\n  # Define a wrapper function inside the decorator\n  def myinner():\n    # Call the original function, convert its return value to uppercase, and return it\n    return func().upper()\n  # Return the wrapper function so it can be used in place of the original\n  return myinner\n\n# Apply the 'changecase' decorator to the following function\n@changecase\ndef myfunction():\n  # The original function returns a string in mixed case\n  return \"Hello Sally\"\n\n# Call the decorated function and print the result\n# Because of the decorator, it will print \"HELLO SALLY\" instead of \"Hello Sally\"\nprint(myfunction())\n```\n\n### Key Concepts Explained:\n1.  **Decorator (`@changecase`)**: This is a way to wrap a function to modify its behavior without changing its actual source code.\n2.  **Wrapper (`myinner`)**: This function \"wraps\" the original `myfunction`. When you call `myfunction()`, you are actually calling `myinner()`.\n3.  **Functional Programming**: In Python, functions are \"first-class objects,\" meaning you can pass them as arguments to other functions and return them just like variables."
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "Code Summary": [
+      {
+        "json": {
+          "text": "This code demonstrates how to use a **decorator** to automatically modify the output of a function.\n\nHere is the breakdown of what happens:\n\n1.  **The Decorator (`changecase`):** This is a wrapper function. It takes a normal function as an input and adds extra logic to it—in this case, converting whatever that function returns into **uppercase letters**.\n2.  **The Function (`myfunction`):** This is a simple function that normally returns the text `\"Hello Sally\"`. \n3.  **The Connector (`@changecase`):** By placing this \"at\" symbol above `myfunction`, you are telling Python to pass \"Hello Sally\" through the decorator before showing it to the user.\n4.  **The Result:** When you call `print(myfunction())`, instead of getting the original mixed-case text, the code outputs **`HELLO SALLY`**.\n\n**In short:** The code uses a decorator to intercept the result of a function and transform its text to all capital letters."
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "Aggregate": [
+      {
+        "json": {
+          "text": [
+            "Here is the code with detailed comments explaining how the decorator works:\n\n```python\n# Define a decorator function that takes another function (func) as an argument\ndef changecase(func):\n  # Define a wrapper function inside the decorator\n  def myinner():\n    # Call the original function, convert its return value to uppercase, and return it\n    return func().upper()\n  # Return the wrapper function so it can be used in place of the original\n  return myinner\n\n# Apply the 'changecase' decorator to the following function\n@changecase\ndef myfunction():\n  # The original function returns a string in mixed case\n  return \"Hello Sally\"\n\n# Call the decorated function and print the result\n# Because of the decorator, it will print \"HELLO SALLY\" instead of \"Hello Sally\"\nprint(myfunction())\n```\n\n### Key Concepts Explained:\n1.  **Decorator (`@changecase`)**: This is a way to wrap a function to modify its behavior without changing its actual source code.\n2.  **Wrapper (`myinner`)**: This function \"wraps\" the original `myfunction`. When you call `myfunction()`, you are actually calling `myinner()`.\n3.  **Functional Programming**: In Python, functions are \"first-class objects,\" meaning you can pass them as arguments to other functions and return them just like variables.",
+            "This code demonstrates how to use a **decorator** to automatically modify the output of a function.\n\nHere is the breakdown of what happens:\n\n1.  **The Decorator (`changecase`):** This is a wrapper function. It takes a normal function as an input and adds extra logic to it—in this case, converting whatever that function returns into **uppercase letters**.\n2.  **The Function (`myfunction`):** This is a simple function that normally returns the text `\"Hello Sally\"`. \n3.  **The Connector (`@changecase`):** By placing this \"at\" symbol above `myfunction`, you are telling Python to pass \"Hello Sally\" through the decorator before showing it to the user.\n4.  **The Result:** When you call `print(myfunction())`, instead of getting the original mixed-case text, the code outputs **`HELLO SALLY`**.\n\n**In short:** The code uses a decorator to intercept the result of a function and transform its text to all capital letters."
+          ]
+        },
+        "pairedItem": [
+          {
+            "item": 0
+          },
+          {
+            "item": 1
+          }
+        ]
+      }
+    ]
+  },
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Comments Addition Node",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comments Addition Node": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Summary": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Summary Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Code Summary",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Comment Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Comments Addition Node",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Formatter Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "63cb7148-8626-4b55-8427-3df5c02f24e1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "243a8bc83c1046d2783154c65ceef648d3eef86e976e9cae18da142377df0132"
+  },
+  "nodeGroups": [],
+  "id": "WBQs55xomBc6koId",
+  "tags": []
+}

@@ -5,6 +5,7 @@ An automated **n8n workflow** that collects customer information through a form,
 ---
 
 ## 📌 Features
+![Screenshot](Store-in-Google-Sheet.png)
 
 * 📝 **Customer Data Collection**
   Collects customer information using an n8n Form Submission node.

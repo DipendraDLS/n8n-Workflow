@@ -5,6 +5,7 @@ An automated **n8n workflow** that processes incoming source code via Gmail, use
 ---
 
 ## 📌 Features
+![Screenshot](gmail_msg_workflow.png)
 
 * 📧 **Automated Email Trigger**
   Monitors Gmail for incoming emails containing source code.
